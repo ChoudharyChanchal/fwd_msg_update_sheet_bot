@@ -1,0 +1,3 @@
+telethon
+gspread
+google-auth
