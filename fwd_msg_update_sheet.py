@@ -105,7 +105,12 @@ async def handler(event):
         try:
             if worksheet:
                 print("Extracting and updating to Google Sheet...")
+                # Get current IST date string
+                ist = pytz.timezone('Asia/Kolkata')
+                current_ist_date = datetime.now(ist).strftime('%Y-%m-%d')
                 row = extract_fields(msg)
+                # Add date as first column
+                row = [current_ist_date] + row
                 worksheet.append_row(row)
                 print("✅ Google Sheet updated!")
             else:
