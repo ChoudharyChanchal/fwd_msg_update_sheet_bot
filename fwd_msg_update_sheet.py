@@ -1,20 +1,35 @@
-from telethon import TelegramClient, events
-from telethon.sessions import StringSession
 import os
 import re
-import gspread
-from google.oauth2.service_account import Credentials
+import sys
 import asyncio
-from flask import Flask, request, jsonify
-from datetime import datetime
+import logging
+import gspread
 import pytz
+from datetime import datetime
+from telethon import TelegramClient, events
+from telethon.sessions import StringSession
+from google.oauth2.service_account import Credentials
+from flask import Flask, request, jsonify
+import threading
 
+# ---------------- LOGGING SETUP ----------------
+# Global logging config so Render can capture everything
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
 
-# ---------------- FLASK APP FOR RENDER ----------------
+# Make sure print() flushes immediately
+print = lambda *args, **kwargs: __builtins__.print(*args, **{**kwargs, "flush": True})
+
+# ---------------- FLASK APP ----------------
 app = Flask(__name__)
 
 @app.route('/')
 def health_check():
+    logger.info("Health check ping received")
     return jsonify({
         'status': 'alive',
         'message': 'Telethon bot is running!',
@@ -23,24 +38,20 @@ def health_check():
 
 @app.route('/keep-alive')
 def keep_alive_endpoint():
+    logger.info("Keep-alive endpoint hit")
     return jsonify({'status': 'alive', 'timestamp': asyncio.get_event_loop().time()})
-
 
 # ---------------- TELEGRAM SETUP ----------------
 api_id = int(os.environ['API_ID'])
 api_hash = os.environ['API_HASH']
-session_string = os.environ['SESSION_STRING']  # 👈 NEW: StringSession from env
+session_string = os.environ['SESSION_STRING']
 source_group = int(os.environ['SOURCE_GROUP'])
 target_group = int(os.environ['TARGET_GROUP'])
 
-# 👈 CHANGED: Use StringSession instead of file
 client = TelegramClient(StringSession(session_string), api_id, api_hash)
 
-
-# ---------------- GOOGLE SHEET SETUP ----------------
+# ---------------- GOOGLE SHEETS SETUP ----------------
 scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-
-# 👈 CHANGED: Handle both local and Render credential paths
 credentials_path = '/etc/secrets/credentials.json'
 if not os.path.exists(credentials_path):
     credentials_path = os.getenv('GOOGLE_SHEETS_CREDENTIALS_PATH', 'credentials.json')
@@ -50,18 +61,17 @@ try:
     gclient = gspread.authorize(creds)
     sheet_id = os.environ['SHEET_ID']
     worksheet = gclient.open_by_key(sheet_id).worksheet("Sheet1")
-    print("✅ Google Sheets client initialized")
+    logger.info("✅ Google Sheets client initialized")
 except Exception as e:
-    print(f"❌ Google Sheets setup failed: {e}")
+    logger.error(f"❌ Google Sheets setup failed: {e}")
     gclient = None
     worksheet = None
 
-
-# ---------------- FIELD EXTRACTION (unchanged) ----------------
+# ---------------- FIELD EXTRACTION ----------------
 def extract_fields(text):
     fields = {
         "Branch": "MISSING",
-        "Salesperson": "MISSING", 
+        "Salesperson": "MISSING",
         "Customer Name": "MISSING",
         "Product Description": "MISSING",
         "Exchange": "MISSING",
@@ -72,7 +82,6 @@ def extract_fields(text):
         "SRP Price": "MISSING",
         "Selling Price (SP)": "MISSING"
     }
-
     patterns = {
         "Branch": r"Branch\s*:\s*(.+)",
         "Salesperson": r"Salesperson\s*:\s*(.+)",
@@ -86,96 +95,69 @@ def extract_fields(text):
         "SRP Price": r"SRP\s*Price\s*:\s*(.+)",
         "Selling Price (SP)": r"Selling\s*Price\s*\(.*SP.*\)?\s*:\s*(.+)"
     }
-
     for line in text.splitlines():
         for field, pattern in patterns.items():
             match = re.search(pattern, line, re.IGNORECASE)
             if match:
                 fields[field] = match.group(1).strip()
-
     return list(fields.values())
 
-
-# ---------------- TELEGRAM HANDLER (unchanged) ----------------
+# ---------------- TELEGRAM HANDLER ----------------
 @client.on(events.NewMessage(chats=source_group))
 async def handler(event):
     msg = event.raw_text
-    print("Message received:", msg)
+    logger.info(f"Message received: {msg}")
 
     if 'mobile' in msg.lower():
-        # Extract and update Google Sheet first
         try:
             if worksheet:
-                print("Extracting and updating to Google Sheet...")
-                # Get current IST date string
+                logger.info("Extracting and updating to Google Sheet...")
                 ist = pytz.timezone('Asia/Kolkata')
                 current_ist_date = datetime.now(ist).strftime('%Y-%m-%d')
                 row = extract_fields(msg)
-                # Add date as first column
                 row = [current_ist_date] + row
                 worksheet.append_row(row)
-                print("✅ Google Sheet updated!")
+                logger.info("✅ Google Sheet updated!")
             else:
-                print("⚠️ Google Sheets not configured")
+                logger.warning("⚠️ Google Sheets not configured")
         except Exception as e:
-            print("❌ Google Sheet update failed:", e)
+            logger.error(f"❌ Google Sheet update failed: {e}")
 
-        # Then try sending to target group
         try:
-            print("Forwarding message...")
+            logger.info("Forwarding message to target group...")
             await client.send_message(target_group, msg)
-            print("✅ Message sent successfully.")
+            logger.info("✅ Message sent successfully.")
         except Exception as e:
-            print("❌ Failed to send message:", e)
-
+            logger.error(f"❌ Failed to send message: {e}")
 
 # ---------------- BACKGROUND KEEP ALIVE TASK ----------------
 async def keep_alive_task():
     while True:
-        print("✅ Bot still alive...")
-        await asyncio.sleep(600)  # every 10 minutes
-
+        logger.info("✅ Bot still alive...")
+        await asyncio.sleep(600)
 
 # ---------------- MAIN FUNCTION ----------------
 async def start_bot():
-    """Start the Telethon client"""
     try:
-        print("🚀 Starting Telethon client...")
+        logger.info("🚀 Starting Telethon client...")
         await client.start()
-        print("✅ Client started successfully!")
-        print("👂 Listening for messages...")
-
-        # Start background tasks
+        logger.info("✅ Client started successfully! Listening for messages...")
         asyncio.create_task(keep_alive_task())
-
-        # Run until disconnected
         await client.run_until_disconnected()
-
     except Exception as e:
-        print(f"❌ Error starting client: {e}")
+        logger.error(f"❌ Error starting client: {e}")
         raise
 
-
-# ---------------- RENDER DEPLOYMENT SETUP ----------------
+# ---------------- RENDER DEPLOYMENT ----------------
 if __name__ == '__main__':
-    # Check if running on Render or locally
     if os.getenv('RENDER'):
-        # Running on Render - start both Flask and Telethon
-        print("🌐 Running on Render - starting Flask server...")
-
-        # Start Telethon in background
-        import threading
+        logger.info("🌐 Running on Render - starting Flask server and Telethon in parallel")
         def run_telethon():
             asyncio.run(start_bot())
-
         telethon_thread = threading.Thread(target=run_telethon, daemon=True)
         telethon_thread.start()
-
-        # Start Flask server
         port = int(os.environ.get('PORT', 5000))
         app.run(host='0.0.0.0', port=port, debug=False)
-
     else:
-        # Running locally - just start Telethon
-        print("💻 Running locally...")
+        logger.info("💻 Running locally...")
         asyncio.run(start_bot())
