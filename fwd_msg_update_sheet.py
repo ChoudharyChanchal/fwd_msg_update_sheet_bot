@@ -159,7 +159,7 @@ async def keep_alive_task():
             if not service_url:
                 # If RENDER_EXTERNAL_URL is not set, we can't self-ping
                 logger.info("🔄 Keep-alive: RENDER_EXTERNAL_URL not set, cannot self-ping")
-                await asyncio.sleep(840)  # 14 minutes
+                await asyncio.sleep(600)  # 14 minutes
                 continue
 
             # Make HTTP request to keep service alive
