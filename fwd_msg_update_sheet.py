@@ -122,7 +122,7 @@ async def handler(event):
     logger.info(f"Message received: {msg}")
 
 
-    if 'mobile' in msg.lower():
+    if 'mobile' in msg.lower() or 'motorola' in msg.lower() or 'boat' in msg.lower() or 'noise' in msg.lower() or 'hapipola' in msg.lower() or 'stufcool' in msg.lower() or 'stuffcool' in msg.lower() or 'pixel' in msg.lower() or 'nothing' in msg.lower() or 'trimmer' in msg.lower() or 'hair dryer' in msg.lower() or 'hair straightner' in msg.lower():
         try:
             if worksheet:
                 logger.info("Extracting and updating to Google Sheet...")
