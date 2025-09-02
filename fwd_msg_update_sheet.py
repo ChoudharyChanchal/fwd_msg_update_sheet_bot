@@ -122,9 +122,8 @@ async def handler(event):
     logger.info(f"Message received: {msg}")
 
 
-    if 'mobile' in msg.lower() or 'motorola' in msg.lower() or 'boat' in msg.lower() or 'noise' in msg.lower() or 'hapipola' in msg.lower() or 'stufcool' in msg.lower() or 'stuffcool' in msg.lower() or 'pixel' in msg.lower() or 'nothing' in msg.lower() or 'trimmer' in msg.lower() or 'hair dryer' in msg.lower() or 'hair straightner' in msg.lower():
-        try:
-            if worksheet:
+    #if 'mobile' in msg.lower() or 'motorola' in msg.lower() or 'boat' in msg.lower() or 'noise' in msg.lower() or 'hapipola' in msg.lower() or 'stufcool' in msg.lower() or 'stuffcool' in msg.lower() or 'pixel' in msg.lower() or 'nothing' in msg.lower() or 'trimmer' in msg.lower() or 'hair dryer' in msg.lower() or 'hair straightner' in msg.lower():
+    if 'item group : mobile phone' in msg.lower() or 'item group : neckband' in msg.lower() or 'item group : earbuds' in msg.lower() or 'item group : adaptors' in msg.lower() or 'item group : audio accessories' in msg.lower() or 'item group : power bank' in msg.lower() or 'item group : trimmer' in msg.lower() or 'item group : headphone' in msg.lower() or 'boat' in msg.lower() or 'noise' in msg.lower() or 'hapipola' in msg.lower() or 'stufcool' in msg.lower() or 'stuffcool' in msg.lower() or 'pixel' in msg.lower() or 'nothing' in msg.lower() or 'trimmer' in msg.lower() or 'hair dryer' in msg.lower() or 'hair straightner' in msg.lower(): 
                 logger.info("Extracting and updating to Google Sheet...")
                 ist = pytz.timezone('Asia/Kolkata')
                 current_ist_date = datetime.now(ist).strftime('%Y-%m-%d')
