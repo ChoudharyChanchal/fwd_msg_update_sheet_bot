@@ -114,17 +114,17 @@ CATEGORIES_B = {
         "sheet_id": os.environ.get("SHEET_ID_MOBILE_INV") or os.environ.get("SHEET_ID_MOBILE"),
         "targets": [int(x) for x in os.environ.get("TARGET_GROUPS_MOBILE_INV", "").split(",") if x]
     }
-    ''' ----- Comment out laptop & accessories part for now ----
-    "laptop": {
-        "keywords": ["item group : laptop", "keyboard", "mouse", "item group : monitor", "computer accessories"],
-        "sheet_id": os.environ.get("SHEET_ID_LAPTOP_INV") or os.environ.get("SHEET_ID_LAPTOP"),
-        "targets": [int(x) for x in os.environ.get("TARGET_GROUPS_LAPTOP_INV", "").split(",") if x]
-    },
-    "accessories": {
-        "keywords": ["item group : neckband","item group : trimmer", "hair dryer", "hair straightner", "item group : earbuds", "item group : adaptors", "item group : audio accessories", "item group : power bank", "item group : headphone", "boat", "noise", "hapipola", "stufcool", "stuffcool"],
-        "sheet_id": os.environ.get("SHEET_ID_ACCESSORIES_INV") or os.environ.get("SHEET_ID_ACCESSORIES"),
-        "targets": [int(x) for x in os.environ.get("TARGET_GROUPS_ACCESSORIES_INV", "").split(",") if x]
-    }'''
+    # ----- Comment out laptop & accessories part for now ----
+    #"laptop": {
+    #    "keywords": ["item group : laptop", "keyboard", "mouse", "item group : monitor", "computer accessories"],
+    #    "sheet_id": os.environ.get("SHEET_ID_LAPTOP_INV") or os.environ.get("SHEET_ID_LAPTOP"),
+    #    "targets": [int(x) for x in os.environ.get("TARGET_GROUPS_LAPTOP_INV", "").split(",") if x]
+    #},
+    #"accessories": {
+    #    "keywords": ["item group : neckband","item group : trimmer", "hair dryer", "hair straightner", "item group : earbuds", "item group : adaptors", "item group : audio accessories", "item group : power bank", "item group : headphone", "boat", "noise", "hapipola", "stufcool", "stuffcool"],
+    #    "sheet_id": os.environ.get("SHEET_ID_ACCESSORIES_INV") or os.environ.get("SHEET_ID_ACCESSORIES"),
+    #    "targets": [int(x) for x in os.environ.get("TARGET_GROUPS_ACCESSORIES_INV", "").split(",") if x]
+    #}
 }
 
 # Map source group ID to its specific configuration
