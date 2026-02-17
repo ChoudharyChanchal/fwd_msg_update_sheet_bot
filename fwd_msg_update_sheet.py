@@ -80,7 +80,7 @@ except Exception as e:
 # We now support multiple source groups.
 # Each source group has its own set of categories and target groups.
 
-# 1. Primary Source Group (Group A)
+# 1. Primary Source Group (Group A - RTS main group)
 SOURCE_GROUP_A = int(os.environ['SOURCE_GROUP'])
 CATEGORIES_A = {
     "mobile": {
@@ -126,6 +126,24 @@ CATEGORIES_B = {
     #    "targets": [int(x) for x in os.environ.get("TARGET_GROUPS_ACCESSORIES_INV", "").split(",") if x]
     #}
 }
+
+# 3. Store IDs 
+STORE_GROUP_IDS = {
+    "WKD": int(os.environ['WKD_STORE_ALL_SALES']),
+    "CHD": int(os.environ['CHD_STORE_ALL_SALES']),
+    "BSR": int(os.environ['BSR_VSW_STORE_ALL_SALES']),
+    "VSW": int(os.environ['BSR_VSW_STORE_ALL_SALES']),
+    "MNB": int(os.environ['MNB_DYR_STORE_ALL_SALES']),
+    "DYR": int(os.environ['MNB_DYR_STORE_ALL_SALES']),
+    "KHD": int(os.environ['KHD_MNR_NRG_STORE_ALL_SALES']),
+    "MNR": int(os.environ['KHD_MNR_NRG_STORE_ALL_SALES']),
+    "NRG": int(os.environ['KHD_MNR_NRG_STORE_ALL_SALES']),
+    "SKP": int(os.environ['SKP_SRR_PLT_STORE_ALL_SALES']),
+    "SRR": int(os.environ['SKP_SRR_PLT_STORE_ALL_SALES']),
+    "PLT": int(os.environ['SKP_SRR_PLT_STORE_ALL_SALES']),
+    "HDP": int(os.environ['HDP_STORE_ALL_SALES'])
+}
+
 
 # Map source group ID to its specific configuration
 SOURCE_CONFIGS = {
@@ -184,6 +202,12 @@ def extract_fields(text):
                 fields[field] = match.group(1).strip()
     return list(fields.values())
 
+# ---------------- BRANCH EXTRACTION ----------------
+def extract_branch(text):
+    match = re.search(r"Branch\s*:\s*(.+)", text, re.IGNORECASE)
+    if match:
+        return match.group(1).strip().upper()
+    return None
 
 # ---------------- TELEGRAM HANDLER ----------------
 # Listen to both source groups (if B is configured)
@@ -237,6 +261,22 @@ async def handler(event):
                 except Exception as e:
                     logger.error(f"❌ Failed to forward to {tg}: {e}")
 
+    # ---------------- Branch routing ONLY for Group A i.e., Surya Real Time Sales ----------------
+    if chat_id == SOURCE_GROUP_A:
+        try:
+            branch_value = extract_branch(msg)
+
+            if branch_value:
+                logger.info(f"🏬 Detected branch: {branch_value}")
+
+            if branch_value and branch_value in STORE_GROUP_IDS:
+                branch_target = STORE_GROUP_IDS[branch_value]
+
+                await client.send_message(branch_target, msg)
+                logger.info(f"🏬 Branch routing → {branch_value} → {branch_target}")
+
+        except Exception as e:
+            logger.error(f"❌ Branch routing failed: {e}")
 
 # ---------------- KEEP ALIVE ----------------
 async def keep_alive_task():
