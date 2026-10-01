@@ -155,12 +155,17 @@ if SOURCE_GROUP_B:
 # ALL Items needing approval will go here 
 ALL_APPROVAL_TARGET_GROUP = int(os.environ['ALL_APPROVAL_TARGET_GROUP'])
 
-# Extract a numeric price from a message using its label
+# ALL items which are in loss
+ALL_LOSS_APPROVAL_TARGET_GROUP = int(os.environ['ALL_LOSS_APPROVAL_TARGET_GROUP'])
 
+
+# Extract a numeric price from a message using its label
 # Extract SP or NLC from a Telegram message
 def extract_price(msg, label):
     if label == "SP":
         pattern = r"Selling\s*Price\s*\(\s*SP\s*\)\s*:\s*([\d,]+(?:\.\d+)?)"
+    elif label == "NP":
+        pattern = r"Negotiated\s*Price\s*\(\s*NP\s*\)\s*:\s*([\d,]+(?:\.\d+)?)"
     else:
         pattern = r"\bNLC\s*:\s*([\d,]+(?:\.\d+)?)"
     match = re.search(pattern, msg, re.IGNORECASE)
@@ -251,9 +256,10 @@ async def handler(event):
     if chat_id == SOURCE_GROUP_A:
         sp = extract_price(msg, "SP")
         nlc = extract_price(msg, "NLC")
+        np = extract_price(msg, "NP")
         # Forward only when both prices are available and SP < NLC
         if sp is not None and nlc is not None:
-            logger.info(f"Checking Price : SP: {sp}, NLC: {nlc}")
+            logger.info(f"Checking SP/NLC Price : SP: {sp}, NLC: {nlc}")
             if sp < nlc:
                 try:
                     await client.send_message(ALL_APPROVAL_TARGET_GROUP, msg)
@@ -261,7 +267,18 @@ async def handler(event):
                 except Exception as e:
                     logger.error(f"SP/NLC forwarding failed: {e}")
         else:
-            logger.info(f"Checking Price : SP: {sp}, NLC: {nlc}")
+            logger.info(f"Checking SP/NLC Price : SP: {sp}, NLC: {nlc}")
+        # Check loss approvals
+        if sp is not None and np is not None:
+            logger.info(f"Checking SP/NP Price : SP: {sp}, NP: {np}")
+            if sp < np:
+                try:
+                    await client.send_message(ALL_LOSS_APPROVAL_TARGET_GROUP, msg)
+                    logger.info("Forwarded message because SP < NP")
+                except Exception as e:
+                    logger.error(f"Error forwarding SP < NP message: {e}")
+        else:
+            logger.info(f"Checking SP/NP Price : SP: {sp}, np: {np}")
             
     ## Code to check approval needed messages end 
 
