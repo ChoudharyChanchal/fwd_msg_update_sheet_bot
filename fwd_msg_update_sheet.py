@@ -247,17 +247,19 @@ async def handler(event):
 
     # Code to check approval needed messages 
     # Check all incoming messages, irrespective of category
-    sp = extract_price(msg, "SP")
-    nlc = extract_price(msg, "NLC")
-    # Forward only when both prices are available and SP < NLC
-    if sp is not None and nlc is not None:
-        logger.info(f"Checking Price : SP: {sp}, NLC: {nlc}")
-        if sp < nlc:
-            try:
-                await client.send_message(ALL_APPROVAL_TARGET_GROUP, msg)
-                logger.info("Message sent to SP < NLC group")
-            except Exception as e:
-                logger.error(f"SP/NLC forwarding failed: {e}")
+    # SP/NLC forwarding only for SOURCE_GROUP_A
+    if chat_id == SOURCE_GROUP_A:
+        sp = extract_price(msg, "SP")
+        nlc = extract_price(msg, "NLC")
+        # Forward only when both prices are available and SP < NLC
+        if sp is not None and nlc is not None:
+            logger.info(f"Checking Price : SP: {sp}, NLC: {nlc}")
+            if sp < nlc:
+                try:
+                    await client.send_message(ALL_APPROVAL_TARGET_GROUP, msg)
+                    logger.info("Message sent to SP < NLC group")
+                except Exception as e:
+                    logger.error(f"SP/NLC forwarding failed: {e}")
     ## Code to check approval needed messages end 
 
     # Get config for this specific source group
