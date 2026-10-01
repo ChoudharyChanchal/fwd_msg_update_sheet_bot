@@ -260,6 +260,9 @@ async def handler(event):
                     logger.info("Message sent to SP < NLC group")
                 except Exception as e:
                     logger.error(f"SP/NLC forwarding failed: {e}")
+        else:
+            logger.info(f"Checking Price : SP: {sp}, NLC: {nlc}")
+            
     ## Code to check approval needed messages end 
 
     # Get config for this specific source group
