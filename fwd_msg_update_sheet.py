@@ -115,7 +115,7 @@ CATEGORIES_B = {
         "targets": [int(x) for x in os.environ.get("TARGET_GROUPS_MOBILE_INV", "").split(",") if x]
     },
     "laptop": {
-        "keywords": ["item group : laptop", "keyboard", "mouse", "item group : monitor", "computer accessories"],
+        "keywords": ["item group : laptop", "item group : keyboard", "mouse", "item group : monitor", "computer accessories"],
         "sheet_id": os.environ.get("SHEET_ID_LAPTOP_INV") or os.environ.get("SHEET_ID_LAPTOP"),
         "targets": [int(x) for x in os.environ.get("TARGET_GROUPS_LAPTOP_INV", "").split(",") if x]
     }
@@ -152,6 +152,21 @@ SOURCE_CONFIGS = {
 if SOURCE_GROUP_B:
     SOURCE_CONFIGS[SOURCE_GROUP_B] = CATEGORIES_B
 
+# ALL Items needing approval will go here 
+ALL_APPROVAL_TARGET_GROUP = int(os.environ['ALL_APPROVAL_TARGET_GROUP'])
+
+# Extract a numeric price from a message using its label
+
+# Extract SP or NLC from a Telegram message
+def extract_price(msg, label):
+    if label == "SP":
+        pattern = r"Selling\s*Price\s*\(\s*SP\s*\)\s*:\s*([\d,]+(?:\.\d+)?)"
+    else:
+        pattern = r"\bNLC\s*:\s*([\d,]+(?:\.\d+)?)"
+    match = re.search(pattern, msg, re.IGNORECASE)
+    if match:
+        return float(match.group(1).replace(",", ""))
+    return None
 
 # ---------------- FIELD EXTRACTION ----------------
 def extract_fields(text):
@@ -229,6 +244,21 @@ async def handler(event):
     msg = event.raw_text
     chat_id = event.chat_id
     logger.info(f"📩 Message received from {chat_id}: {msg}")
+
+    # Code to check approval needed messages 
+    # Check all incoming messages, irrespective of category
+    sp = extract_price(msg, "SP")
+    nlc = extract_price(msg, "NLC")
+    # Forward only when both prices are available and SP < NLC
+    if sp is not None and nlc is not None:
+        logger.info(f"Checking Price : SP: {sp}, NLC: {nlc}")
+        if sp < nlc:
+            try:
+                await client.send_message(ALL_APPROVAL_TARGET_GROUP, msg)
+                logger.info("Message sent to SP < NLC group")
+            except Exception as e:
+                logger.error(f"SP/NLC forwarding failed: {e}")
+    ## Code to check approval needed messages end 
 
     # Get config for this specific source group
     config_map = SOURCE_CONFIGS.get(chat_id)
